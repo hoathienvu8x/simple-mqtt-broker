@@ -14,7 +14,9 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "mqtt_handler.h"
 #include "tcp_handler.h"
@@ -79,7 +81,9 @@ void *handle_connection(void *connfd_p) {
         ssize_t response_size =
             handle_message(response, message_type, connfd, packet, packet_size);
 
-        write(connfd, response, response_size);
+        if (write(connfd, response, response_size) != response_size) {
+            printf("send to %d failed %s\n", connfd, strerror(errno));
+        }
     }
 
     close(connfd);

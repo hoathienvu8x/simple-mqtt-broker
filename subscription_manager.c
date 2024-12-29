@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 Subscription subscriptions[MAX_SUBSCRIBERS];
 ssize_t subscriptions_size = 0;
@@ -56,7 +57,10 @@ void SUBS_publish_message(char *topic, uint8_t *publishing_packet,
         if (strcmp(topic, sub.topic) == 0) {
             printf("-- publishing in topic '%s' to subscriber %d\n", topic,
                    sub.connfd);
-            write(sub.connfd, publishing_packet, packet_size);
+            if (write(sub.connfd, publishing_packet, packet_size) != packet_size) {
+                printf("-- publishing in topic '%s' to subscriber %d failed %s\n", topic,
+                   sub.connfd, strerror(errno));
+            }
         }
     }
     pthread_mutex_unlock(&mutex);
