@@ -17,20 +17,20 @@
 #define HEADER_LENGTH 2
 
 enum MessageType {
-    CONNECT = 1,
-    CONNACK,
-    PUBLISH,
-    PUBACK,
-    PUBREC,
-    PUBREL,
-    PUBCOMP,
-    SUBSCRIBE,
-    SUBACK,
-    UNSUBSCRIBE,
-    UNSUBACK,
-    PINGREQ,
-    PINGRESP,
-    DISCONNECT
+  CONNECT = 1,
+  CONNACK,
+  PUBLISH,
+  PUBACK,
+  PUBREC,
+  PUBREL,
+  PUBCOMP,
+  SUBSCRIBE,
+  SUBACK,
+  UNSUBSCRIBE,
+  UNSUBACK,
+  PINGREQ,
+  PINGRESP,
+  DISCONNECT
 };
 
 int main(int argc, char **argv);

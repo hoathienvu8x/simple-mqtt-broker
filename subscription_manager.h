@@ -18,8 +18,8 @@
 #define MAX_SUBSCRIBERS 100
 
 typedef struct {
-    int connfd;
-    char *topic;
+  int connfd;
+  char *topic;
 } Subscription;
 
 void SUBS_add_subscription(int connfd, char *topic);

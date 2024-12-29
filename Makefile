@@ -15,17 +15,21 @@ OBJS = \
 	tcp_handler.o \
 	mqtt_handler.o \
 	subscription_manager.o
+OBJS := $(addprefix objects/,$(OBJS))
 
-all: mqtt_broker
+all: objects mqtt_broker
+
+objects:
+	mkdir -p objects
 
 mqtt_broker: $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
 
-%.o: %.c %.h
+objects/%.o: %.c %.h
 	$(CC) -c $(CFLAGS) $< -o $@
 
-%.o: %.c
+objects/%.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
 clean:
-	rm -f *.o
+	rm -f objects/*.o mqtt_broker
