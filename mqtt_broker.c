@@ -83,6 +83,7 @@ void *handle_connection(void *connfd_p) {
 
     if (write(connfd, response, response_size) != response_size) {
       printf("send to %d failed %s\n", connfd, strerror(errno));
+      break;
     }
   }
 

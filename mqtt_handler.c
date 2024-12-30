@@ -32,8 +32,9 @@ ssize_t MQTT_handle_connect(uint8_t *response) {
     conn_ack_flags, conn_ack_reason_code,
     conn_ack_property_size
   };
-  memcpy(response, conn_ack_message, response_size);
-  return response_size;
+  if (memcpy(response, conn_ack_message, response_size))
+    return response_size;
+  return -1;
 }
 
 ssize_t MQTT_handle_publish(uint8_t *control_packet, ssize_t packet_size) {
@@ -43,7 +44,10 @@ ssize_t MQTT_handle_publish(uint8_t *control_packet, ssize_t packet_size) {
   uint8_t *body_topic = body + 2;
 
   char *topic = malloc(sizeof(char) * topic_size);
-  memcpy(topic, body_topic, topic_size);
+  if (!memcpy(topic, body_topic, topic_size)) {
+    free(topic);
+    return -1;
+  }
   topic[topic_size] = 0;
 
   SUBS_publish_message(topic, control_packet, packet_size);
@@ -65,8 +69,9 @@ ssize_t get_subscribe_ack(uint16_t msg_id, uint8_t *response) {
     msg_id_1, msg_id_2,
     property_size, granted_qos
   };
-  memcpy(response, subscribe_ack_message, response_size);
-  return response_size;
+  if (memcpy(response, subscribe_ack_message, response_size))
+    return response_size;
+  return -1;
 }
 
 ssize_t MQTT_handle_subscribe(uint8_t *response, int connfd,
@@ -79,7 +84,10 @@ ssize_t MQTT_handle_subscribe(uint8_t *response, int connfd,
   uint8_t *body_topic = body + 5 + property_size;
 
   char *topic = malloc(sizeof(char) * topic_size);
-  memcpy(topic, body_topic, topic_size);
+  if (!memcpy(topic, body_topic, topic_size)) {
+    free(topic);
+    return -1;
+  }
   topic[topic_size] = 0;
 
   SUBS_add_subscription(connfd, topic);
@@ -92,8 +100,9 @@ ssize_t MQTT_handle_ping(uint8_t *response) {
   uint8_t remaining_length = 0;
   uint8_t ping_resp_message[] = {PINGRESP << 4, remaining_length};
   ssize_t response_size = sizeof(ping_resp_message) / sizeof(uint8_t);
-  memcpy(response, ping_resp_message, response_size);
-  return response_size;
+  if (memcpy(response, ping_resp_message, response_size))
+    return response_size;
+  return -1;
 }
 
 ssize_t get_unsubscribe_ack(uint16_t msg_id, uint8_t *response) {
@@ -109,8 +118,9 @@ ssize_t get_unsubscribe_ack(uint16_t msg_id, uint8_t *response) {
     msg_id_1, msg_id_2,
     property_size, reason_code
   };
-  memcpy(response, unsubscribe_ack_message, response_size);
-  return response_size;
+  if (memcpy(response, unsubscribe_ack_message, response_size))
+    return response_size;
+  return -1;
 }
 
 ssize_t MQTT_handle_unsubscribe(uint8_t *response, int connfd,
