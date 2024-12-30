@@ -76,6 +76,8 @@ void *handle_connection(void *connfd_p) {
     uint8_t body_size = packet[1];
     uint8_t message_type = (header >> 4) & 0x0F;
 
+    if (body_size > MAX_PACKET_SIZE - HEADER_LENGTH) break;
+
     retval = TCP_recv_data(connfd, packet + HEADER_LENGTH, body_size);
     if (retval < (ssize_t)body_size) break;
     packet_size += retval;
