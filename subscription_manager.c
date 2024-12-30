@@ -24,16 +24,25 @@ ssize_t subscriptions_size = 0;
 pthread_mutex_t mutex;
 
 void SUBS_add_subscription(int connfd, char *topic) {
+  int i;
   pthread_mutex_lock(&mutex);
-  subscriptions[subscriptions_size++] = (Subscription){connfd, topic};
+  for (i = 0; i < subscriptions_size; i++) {
+    if (subscriptions[i].connfd == -1) {
+      break;
+    }
+  }
+  if (i < MAX_SUBSCRIBERS) {
+    subscriptions[i] = (Subscription){connfd, topic};
+    subscriptions_size++;
+    printf("-- adding subscriber %d in topic: '%s'\n", connfd, topic);
+  }
   pthread_mutex_unlock(&mutex);
-  printf("-- adding subscriber %d in topic: '%s'\n", connfd, topic);
 }
 
 void SUBS_remove_subscription(int connfd) {
-  int subscription_index = -1;
+  int subscription_index = -1, i;
   pthread_mutex_lock(&mutex);
-  for (int i = 0; i < subscriptions_size; i++) {
+  for (i = 0; i < subscriptions_size; i++) {
     if (connfd == subscriptions[i].connfd) {
       subscription_index = i;
       break;
@@ -45,7 +54,8 @@ void SUBS_remove_subscription(int connfd) {
     return;
   }
 
-  subscriptions[subscription_index] = subscriptions[--subscriptions_size];
+  subscriptions[subscription_index].connfd = -1;
+  subscriptions_size--;
   pthread_mutex_unlock(&mutex);
   printf("-- removing subscriber %d\n", connfd);
 }
