@@ -13,16 +13,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 int TCP_init_socket() {
   int on = 1;
-  int fd = socket(AF_INET, SOCK_STREAM, 0);
+  int fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
   if (fd < 0) return -1;
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0) {
-    close(fd);
+    TCP_close_socket(fd);
     return -1;
   }
   return fd;
+}
+
+int TCP_close_socket(int fd) {
+  shutdown(fd, SHUT_RDWR);
+  return close(fd);
 }
 
 int TCP_bind_socket_address(int socketfd, char *port) {
@@ -39,5 +45,17 @@ int TCP_listen_connections(int listenfd) {
 }
 
 int TCP_await_connection(int listenfd) {
-  return accept(listenfd, (struct sockaddr *)NULL, NULL);
+  int fd = accept(listenfd, (struct sockaddr *)NULL, NULL);
+  if (fd < 0) return -1;
+  if (TCP_set_nonblocking(fd) < 0) {
+    TCP_close_socket(fd);
+    return -1;
+  }
+  return fd;
+}
+
+int TCP_set_nonblocking(int fd) {
+  int flags = fcntl (fd, F_GETFL, 0);
+  if (flags < 0) return -1;
+  return fcntl (fd, F_SETFL, flags | O_NONBLOCK);
 }

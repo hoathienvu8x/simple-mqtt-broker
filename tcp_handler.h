@@ -14,10 +14,14 @@
 
 int TCP_init_socket();
 
+int TCP_close_socket(int fd);
+
 int TCP_bind_socket_address(int socketfd, char *port);
 
 int TCP_listen_connections(int listenfd);
 
 int TCP_await_connection(int listenfd);
+
+int TCP_set_nonblocking(int fd);
 
 #endif

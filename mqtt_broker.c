@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
   }
 
   printf("\nbroker terminating\n");
-  close(listenfd);
+  TCP_close_socket(listenfd);
   exit(0);
 }
 
@@ -66,28 +66,50 @@ void *handle_connection(void *connfd_p) {
   printf("\nconnection %d open\n", connfd);
 
   uint8_t packet[MAX_PACKET_SIZE + 1];
-  ssize_t packet_size;
+  ssize_t packet_size, retval = 0;
 
-  while ((packet_size = read(connfd, packet, HEADER_LENGTH)) > 0) {
+  while (1) {
+    packet_size = read(connfd, packet, HEADER_LENGTH);
+    if (packet_size <= 0) {
+      if (packet_size < 0 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
+        continue;
+      }
+      break;
+    }
+    if (packet_size < HEADER_LENGTH) break;
     uint8_t header = packet[0];
     uint8_t body_size = packet[1];
     uint8_t message_type = (header >> 4) & 0x0F;
+    uint8_t recv_size = body_size;
 
-    packet_size += read(connfd, packet + HEADER_LENGTH, body_size);
+    do {
+      retval = read(connfd, packet + HEADER_LENGTH + (body_size - recv_size), recv_size);
+      if (retval <= 0) {
+        if (retval < 0 && (errno == EWOULDBLOCK || errno == EAGAIN)) continue;
+        TCP_close_socket(connfd);
+        free(connfd_p);
+        return NULL;
+      }
+      packet_size += retval;
+      recv_size -= (uint8_t)retval;
+    } while ((errno == EAGAIN || errno == EWOULDBLOCK) && recv_size > 0);
 
     printf("client %d with message type ", connfd);
 
     uint8_t response[MAX_PACKET_SIZE];
     ssize_t response_size =
       handle_message(response, message_type, connfd, packet, packet_size);
-
-    if (write(connfd, response, response_size) != response_size) {
-      printf("send to %d failed %s\n", connfd, strerror(errno));
-      break;
-    }
+    if (response_size < 0) break;
+    uint8_t *buf2 = response;
+    do {
+      retval = write(connfd, buf2, response_size);
+      if (retval < 0 && (errno != EAGAIN && errno != EWOULDBLOCK)) break;
+      buf2 += retval;
+      response_size -= retval;
+    } while ((errno == EAGAIN || errno == EWOULDBLOCK) && response_size > 0);
   }
 
-  close(connfd);
+  TCP_close_socket(connfd);
   printf("connection %d closed\n\n", connfd);
   free(connfd_p);
   return NULL;
