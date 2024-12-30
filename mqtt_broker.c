@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
 
     *connfd_p = TCP_await_connection(listenfd);
     if (*connfd_p == -1) {
+      if (errno ==  EAGAIN || errno == EWOULDBLOCK) continue;
       exit_with_message("fail to accept connection");
     }
 
