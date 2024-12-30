@@ -69,30 +69,15 @@ void *handle_connection(void *connfd_p) {
   ssize_t packet_size, retval = 0;
 
   while (1) {
-    packet_size = read(connfd, packet, HEADER_LENGTH);
-    if (packet_size <= 0) {
-      if (packet_size < 0 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
-        continue;
-      }
-      break;
-    }
+    packet_size = TCP_recv_data(connfd, packet, HEADER_LENGTH);
     if (packet_size < HEADER_LENGTH) break;
     uint8_t header = packet[0];
     uint8_t body_size = packet[1];
     uint8_t message_type = (header >> 4) & 0x0F;
-    uint8_t recv_size = body_size;
 
-    do {
-      retval = read(connfd, packet + HEADER_LENGTH + (body_size - recv_size), recv_size);
-      if (retval <= 0) {
-        if (retval < 0 && (errno == EWOULDBLOCK || errno == EAGAIN)) continue;
-        TCP_close_socket(connfd);
-        free(connfd_p);
-        return NULL;
-      }
-      packet_size += retval;
-      recv_size -= (uint8_t)retval;
-    } while ((errno == EAGAIN || errno == EWOULDBLOCK) && recv_size > 0);
+    retval = TCP_recv_data(connfd, packet + HEADER_LENGTH, body_size);
+    if (retval < (ssize_t)body_size) break;
+    packet_size += retval;
 
     printf("client %d with message type ", connfd);
 
@@ -100,13 +85,9 @@ void *handle_connection(void *connfd_p) {
     ssize_t response_size =
       handle_message(response, message_type, connfd, packet, packet_size);
     if (response_size < 0) break;
-    uint8_t *buf2 = response;
-    do {
-      retval = write(connfd, buf2, response_size);
-      if (retval < 0 && (errno != EAGAIN && errno != EWOULDBLOCK)) break;
-      buf2 += retval;
-      response_size -= retval;
-    } while ((errno == EAGAIN || errno == EWOULDBLOCK) && response_size > 0);
+    if (TCP_send_data(connfd, response, response_size) < response_size) {
+      break;
+    }
   }
 
   TCP_close_socket(connfd);

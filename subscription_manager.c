@@ -8,6 +8,7 @@
  */
 
 #include "subscription_manager.h"
+#include "tcp_handler.h"
 
 #include <pthread.h>
 #include <stdint.h>
@@ -57,13 +58,7 @@ void SUBS_publish_message(char *topic, uint8_t *publishing_packet,
     if (strcmp(topic, sub.topic) == 0) {
       printf("-- publishing in topic '%s' to subscriber %d\n", topic,
            sub.connfd);
-      ssize_t retval = 0;
-      do {
-        retval = write(sub.connfd, publishing_packet, packet_size);
-        if (retval < 0 && (errno != EAGAIN && errno != EWOULDBLOCK)) break;
-        publishing_packet += retval;
-        packet_size -= retval;
-      } while ((errno == EAGAIN || errno == EWOULDBLOCK) && packet_size > 0);
+      TCP_send_data(sub.connfd, publishing_packet, packet_size);
     }
   }
   pthread_mutex_unlock(&mutex);

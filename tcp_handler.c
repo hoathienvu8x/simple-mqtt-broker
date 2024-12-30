@@ -14,6 +14,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 
 int TCP_init_socket() {
   int on = 1;
@@ -58,4 +59,37 @@ int TCP_set_nonblocking(int fd) {
   int flags = fcntl (fd, F_GETFL, 0);
   if (flags < 0) return -1;
   return fcntl (fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+int TCP_recv_data(int fd, void *buf, size_t len) {
+  if (fd <= 0 || len == 0) return -1;
+  ssize_t rc = 0;
+  size_t rlen = len;
+  char *p = buf;
+  do {
+    rc = read(fd, p + (len - rlen), rlen);
+    if (rc <= 0) {
+      if (rc < 0 && (errno == EWOULDBLOCK || errno == EAGAIN)) continue;
+      return (int)(rlen == 0 ? len : (len - rlen));
+    }
+    rlen -= (size_t)rc;
+  } while ((errno == EAGAIN || errno == EWOULDBLOCK) && rlen > 0);
+  return (int)(rlen == 0 ? len : (len - rlen));
+}
+
+int TCP_send_data(int fd, const void *buf, size_t len) {
+  if (fd <= 0 || len == 0) return -1;
+  ssize_t rc = 0;
+  size_t slen = len;
+  const char *buf2 = buf;
+  do {
+    rc = write(fd, buf2, slen);
+    if (rc <= 0) {
+      if (rc < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) continue;
+      return (int)(slen == 0 ? len : (len - slen));
+    }
+    buf2 += rc;
+    slen -= (size_t)rc;
+  } while ((errno == EAGAIN || errno == EWOULDBLOCK) && slen > 0);
+  return (int)(slen == 0 ? len : (len - slen));
 }
